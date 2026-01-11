@@ -17,6 +17,7 @@ struct MenuScanResultView: View {
     @State private var showSaveDialog = false
     @State private var restaurantName = ""
     @State private var showSavedBanner = false
+    @State private var showShareSheet = false
 
     var body: some View {
         ScrollView {
@@ -70,10 +71,17 @@ struct MenuScanResultView: View {
         .toolbar {
             if viewModel.state == .success {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showSaveDialog = true
-                    } label: {
-                        Image(systemName: "square.and.arrow.down")
+                    HStack(spacing: 16) {
+                        Button {
+                            showShareSheet = true
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        Button {
+                            showSaveDialog = true
+                        } label: {
+                            Image(systemName: "square.and.arrow.down")
+                        }
                     }
                 }
             }
@@ -108,6 +116,38 @@ struct MenuScanResultView: View {
                     }
             }
         }
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(items: [generateShareText()])
+        }
+    }
+
+    private func generateShareText() -> String {
+        let items = viewModel.menuItems
+        var text = "🍽️ MenuSnap Health Analysis\n\n"
+
+        // Top healthy picks (score 7+)
+        let healthyItems = items.filter { $0.healthScore >= 7 }.prefix(5)
+        if !healthyItems.isEmpty {
+            text += "✅ Top Healthy Picks:\n"
+            for item in healthyItems {
+                text += "• \(item.name) (\(item.healthScore)/10)\n"
+            }
+            text += "\n"
+        }
+
+        // Items to limit (score 4 or below)
+        let limitItems = items.filter { $0.healthScore <= 4 }.prefix(3)
+        if !limitItems.isEmpty {
+            text += "⚠️ Consider Limiting:\n"
+            for item in limitItems {
+                text += "• \(item.name) (\(item.healthScore)/10)\n"
+            }
+            text += "\n"
+        }
+
+        text += "Analyzed \(items.count) items with MenuSnap"
+
+        return text
     }
 
     private func saveScan() {
@@ -349,6 +389,17 @@ struct FullImageView: View {
                 }
         }
     }
+}
+
+// MARK: - Share Sheet
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview {

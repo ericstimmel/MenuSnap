@@ -14,6 +14,7 @@ struct HistoryScanDetailView: View {
     let scan: MenuScan
     @State private var showFullImage = false
     @State private var showDeleteConfirmation = false
+    @State private var showShareSheet = false
 
     var body: some View {
         ScrollView {
@@ -75,11 +76,18 @@ struct HistoryScanDetailView: View {
         .navigationTitle("Scan Details")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .destructiveAction) {
-                Button(role: .destructive) {
-                    showDeleteConfirmation = true
-                } label: {
-                    Image(systemName: "trash")
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack(spacing: 16) {
+                    Button {
+                        showShareSheet = true
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    Button(role: .destructive) {
+                        showDeleteConfirmation = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
                 }
             }
         }
@@ -88,6 +96,9 @@ struct HistoryScanDetailView: View {
                 FullImageView(image: image)
             }
         }
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(items: [generateShareText()])
+        }
         .confirmationDialog("Delete this scan?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 modelContext.delete(scan)
@@ -95,6 +106,36 @@ struct HistoryScanDetailView: View {
             }
             Button("Cancel", role: .cancel) {}
         }
+    }
+
+    private func generateShareText() -> String {
+        let items = scan.menuItems
+        var text = "🍽️ MenuSnap Health Analysis\n"
+        text += "📍 \(scan.restaurantName)\n\n"
+
+        // Top healthy picks (score 7+)
+        let healthyItems = items.filter { $0.healthScore >= 7 }.prefix(5)
+        if !healthyItems.isEmpty {
+            text += "✅ Top Healthy Picks:\n"
+            for item in healthyItems {
+                text += "• \(item.name) (\(item.healthScore)/10)\n"
+            }
+            text += "\n"
+        }
+
+        // Items to limit (score 4 or below)
+        let limitItems = items.filter { $0.healthScore <= 4 }.prefix(3)
+        if !limitItems.isEmpty {
+            text += "⚠️ Consider Limiting:\n"
+            for item in limitItems {
+                text += "• \(item.name) (\(item.healthScore)/10)\n"
+            }
+            text += "\n"
+        }
+
+        text += "Analyzed \(items.count) items with MenuSnap"
+
+        return text
     }
 }
 
