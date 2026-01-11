@@ -6,12 +6,17 @@
 //
 
 import SwiftUI
+import SwiftData
 import UIKit
 
 struct MenuScanResultView: View {
+    @Environment(\.modelContext) private var modelContext
     let image: UIImage
     @State private var viewModel = MenuAnalysisViewModel()
     @State private var showFullImage = false
+    @State private var showSaveDialog = false
+    @State private var restaurantName = ""
+    @State private var showSavedBanner = false
 
     var body: some View {
         ScrollView {
@@ -62,12 +67,82 @@ struct MenuScanResultView: View {
         }
         .navigationTitle("Menu Analysis")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if viewModel.state == .success {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showSaveDialog = true
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                    }
+                }
+            }
+        }
         .task {
             await viewModel.analyzeMenu(image: image)
         }
         .sheet(isPresented: $showFullImage) {
             FullImageView(image: image)
         }
+        .alert("Save Scan", isPresented: $showSaveDialog) {
+            TextField("Restaurant name", text: $restaurantName)
+            Button("Cancel", role: .cancel) {
+                restaurantName = ""
+            }
+            Button("Save") {
+                saveScan()
+            }
+        } message: {
+            Text("Enter the restaurant name to save this scan")
+        }
+        .overlay(alignment: .top) {
+            if showSavedBanner {
+                SavedBannerView()
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation {
+                                showSavedBanner = false
+                            }
+                        }
+                    }
+            }
+        }
+    }
+
+    private func saveScan() {
+        guard !restaurantName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+
+        let scan = MenuScan(
+            restaurantName: restaurantName.trimmingCharacters(in: .whitespaces),
+            image: image,
+            menuItems: viewModel.menuItems
+        )
+        modelContext.insert(scan)
+
+        restaurantName = ""
+        withAnimation {
+            showSavedBanner = true
+        }
+    }
+}
+
+// MARK: - Saved Banner
+struct SavedBannerView: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.white)
+            Text("Saved to History")
+                .fontWeight(.medium)
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.green)
+        .clipShape(Capsule())
+        .shadow(radius: 4)
+        .padding(.top, 8)
     }
 }
 

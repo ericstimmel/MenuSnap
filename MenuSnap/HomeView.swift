@@ -80,6 +80,13 @@ struct HomeView: View {
                 .padding(.bottom, 60)
             }
             .navigationTitle("")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(destination: HistoryView()) {
+                        Image(systemName: "clock.arrow.circlepath")
+                    }
+                }
+            }
             .sheet(isPresented: $showCamera) {
                 CameraView(image: $capturedImage, isPresented: $showCamera, sourceType: .camera)
             }
