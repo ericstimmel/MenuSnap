@@ -11,8 +11,7 @@ import UIKit
 class ClaudeAPIService {
     static let shared = ClaudeAPIService()
 
-    // TODO: Replace with your actual Claude API key
-    private let apiKey = "YOUR_API_KEY_HERE"
+    private let apiKey = Secrets.claudeAPIKey
     private let apiURL = "https://api.anthropic.com/v1/messages"
     private let model = "claude-sonnet-4-20250514" //claude-haiku-3-5-20241022 is cheaper and can still work
 
